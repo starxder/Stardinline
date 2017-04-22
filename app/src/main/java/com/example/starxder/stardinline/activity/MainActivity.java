@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private List<Order> list_B = new ArrayList<Order>();
     private List<Order> list_C = new ArrayList<Order>();
     private List<Order> list_all;
-    private Button btn_A, btn_B, btn_C;
+    private Button btn_A, btn_B, btn_C,btn_connect;
     public static final int SHOW_RESPONSE = 0;
     private OrderAdapter adapter_A;
     private OrderAdapter adapter_B;
@@ -62,6 +62,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btn_B.setOnClickListener(this);
         btn_C = (Button) findViewById(R.id.btn_getC);
         btn_C.setOnClickListener(this);
+        btn_connect = (Button) findViewById(R.id.btn_connect);
+        btn_connect.setOnClickListener(this);
 //        ---------------------瞎编数据-----------------------
         sendRequestWithHttpUrlConnection();
 
@@ -79,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 AlertDialog.Builder Item_alert = new AlertDialog.Builder(MainActivity.this);
                 Item_alert.setTitle("点餐系统");
                 Item_alert.setMessage("请选择您的操作");
-                Item_alert.setCancelable(false);
+                Item_alert.setCancelable(true);
                 Item_alert.setPositiveButton("用餐", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
@@ -109,7 +111,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 AlertDialog.Builder Item_alert = new AlertDialog.Builder(MainActivity.this);
                 Item_alert.setTitle("点餐系统");
                 Item_alert.setMessage("请选择您的操作");
-                Item_alert.setCancelable(false);
+                Item_alert.setCancelable(true);
                 Item_alert.setPositiveButton("用餐", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
@@ -140,7 +142,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 AlertDialog.Builder Item_alert = new AlertDialog.Builder(MainActivity.this);
                 Item_alert.setTitle("点餐系统");
                 Item_alert.setMessage("请选择您的操作");
-                Item_alert.setCancelable(false);
+                Item_alert.setCancelable(true);
                 Item_alert.setPositiveButton("用餐", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
@@ -182,7 +184,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 AlertDialog.Builder getA_alert = new AlertDialog.Builder(MainActivity.this);
                 getA_alert.setTitle("点餐系统");
                 getA_alert.setMessage("确定要取A类桌号吗？");
-                getA_alert.setCancelable(false);
+                getA_alert.setCancelable(true);
                 getA_alert.setPositiveButton("确定", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
@@ -195,7 +197,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         //使用Request.Builder来创建请求对象
                         Request.Builder builder = new Request.Builder();
                         //指定使用GET请求,并且指定要请求的地址
-                        Request request = builder.get().url("http://59.46.10.16:80/web-frame/order/insert.do?ordertype=A").build();
+                        Request request = builder.get().url("http://59.46.10.16:80/web-frame/order/insert.do?ordertype=A&gettype=pb").build();
                         //将请求加入请求队列,将请求封装成Call对象
                         Call call = client.newCall(request);
                         //使用异步的方式来得到请求的响应并且处理
@@ -242,7 +244,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 AlertDialog.Builder getB_alert = new AlertDialog.Builder(MainActivity.this);
                 getB_alert.setTitle("点餐系统");
                 getB_alert.setMessage("确定要取B类桌号吗？");
-                getB_alert.setCancelable(false);
+                getB_alert.setCancelable(true);
                 getB_alert.setPositiveButton("确定", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
@@ -252,7 +254,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         //使用Request.Builder来创建请求对象
                         Request.Builder builder = new Request.Builder();
                         //指定使用GET请求,并且指定要请求的地址
-                        Request request = builder.get().url("http://59.46.10.16:80/web-frame/order/insert.do?ordertype=B").build();
+                        Request request = builder.get().url("http://59.46.10.16:80/web-frame/order/insert.do?ordertype=B&gettype=pb").build();
                         //将请求加入请求队列,将请求封装成Call对象
                         Call call = client.newCall(request);
                         //使用异步的方式来得到请求的响应并且处理
@@ -299,7 +301,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 AlertDialog.Builder getC_alert = new AlertDialog.Builder(MainActivity.this);
                 getC_alert.setTitle("点餐系统");
                 getC_alert.setMessage("确定要取C类桌号吗？");
-                getC_alert.setCancelable(false);
+                getC_alert.setCancelable(true);
                 getC_alert.setPositiveButton("确定", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
@@ -310,7 +312,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         //使用Request.Builder来创建请求对象
                         Request.Builder builder = new Request.Builder();
                         //指定使用GET请求,并且指定要请求的地址
-                        Request request = builder.get().url("http://59.46.10.16:80/web-frame/order/insert.do?ordertype=C").build();
+                        Request request = builder.get().url("http://59.46.10.16:80/web-frame/order/insert.do?ordertype=C&gettype=pb").build();
                         //将请求加入请求队列,将请求封装成Call对象
                         Call call = client.newCall(request);
                         //使用异步的方式来得到请求的响应并且处理
@@ -333,8 +335,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        Log.d("点餐", response.body().toString());
+                                        try {
+                                            Log.d("点餐", response.body().string());
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
                                         sendRequestWithHttpUrlConnection();
+                                        //----------------------------------------------------打印   response.body().string()   ---------------------
                                     }
                                 });
                             }
@@ -349,6 +356,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 });
                 getC_alert.show();
 
+
+                break;
+
+            case R.id.btn_connect:
+                    btn_connect.setBackgroundResource(R.mipmap.icon_connected);
                 break;
         }
     }
@@ -392,21 +404,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     //得到所有的Json数据
                     initData(list_all);
 
-//                    listView_A.setAdapter(adapter_A);
-//
-//
-//
-//                    listView_B.setAdapter(adapter_B);
-//
-//
-//                    listView_C.setAdapter(adapter_C);
-
                     adapter_A.notifyDataSetChanged();
                     adapter_B.notifyDataSetChanged();
                     adapter_C.notifyDataSetChanged();
 
-
-                    Log.d("Gson", list.get(1).getOrdername() + "");
                     break;
             }
 

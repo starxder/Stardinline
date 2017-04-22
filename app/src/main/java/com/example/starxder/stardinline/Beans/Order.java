@@ -19,7 +19,11 @@ public class Order {
 
     private String dealtype;
 
-    public Order(String ordercode, String ordertype, String ordertime, Integer ordername, String dateflag, String delflag, String dealtype) {
+    private String gettype;
+
+    private String openid;
+
+    public Order(String ordercode, String ordertype, String ordertime, Integer ordername, String dateflag, String delflag, String dealtype, String gettype, String openid) {
         this.ordercode = ordercode;
         this.ordertype = ordertype;
         this.ordertime = ordertime;
@@ -27,6 +31,8 @@ public class Order {
         this.dateflag = dateflag;
         this.delflag = delflag;
         this.dealtype = dealtype;
+        this.gettype = gettype;
+        this.openid = openid;
     }
 
     public String getOrdercode() {
@@ -85,5 +91,19 @@ public class Order {
         this.dealtype = dealtype;
     }
 
+    public String getGettype() {
+        return gettype;
+    }
 
+    public void setGettype(String gettype) {
+        this.gettype = gettype;
+    }
+
+    public String getOpenid() {
+        return openid;
+    }
+
+    public void setOpenid(String openid) {
+        this.openid = openid;
+    }
 }
