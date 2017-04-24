@@ -41,7 +41,7 @@ public class OrderAdapter extends ArrayAdapter<Order> {
         time.setText(outTime);
         //wx------------>微信
         String outType = "";
-        if(order.getGettype() == "wx"){
+        if(order.getGettype().equals("wx")){
             outType = "微信";
         }else{
             outType = "平板";

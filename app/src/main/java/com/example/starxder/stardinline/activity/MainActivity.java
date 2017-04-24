@@ -1,7 +1,11 @@
 package com.example.starxder.stardinline.activity;
 
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
@@ -11,14 +15,23 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
 import com.example.starxder.stardinline.Beans.Order;
 import com.example.starxder.stardinline.Adapter.OrderAdapter;
 import com.example.starxder.stardinline.R;
+import com.example.starxder.stardinline.Utils.DateUtils;
+import com.example.starxder.stardinline.Utils.OkManager;
+import com.example.starxder.stardinline.Utils.PrintUtils;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.zj.btsdk.BluetoothService;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,6 +39,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private List<Order> list_B = new ArrayList<Order>();
     private List<Order> list_C = new ArrayList<Order>();
     private List<Order> list_all;
-    private Button btn_A, btn_B, btn_C,btn_connect;
+    private Button btn_A, btn_B, btn_C, btn_connect;
     public static final int SHOW_RESPONSE = 0;
     private OrderAdapter adapter_A;
     private OrderAdapter adapter_B;
@@ -49,6 +63,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ListView listView_A;
     private ListView listView_B;
     private ListView listView_C;
+    BluetoothService mService = null;
+    private static final int REQUEST_CONNECT_DEVICE = 1;  //获取设备消息
+    BluetoothDevice con_dev = null;
+    private static final int REQUEST_ENABLE_BT = 2;
+    String frontNum, myNum, nowNum;
 
 
     @Override
@@ -56,6 +75,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         getSupportActionBar().hide();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mService = new BluetoothService(this, mHandler);
+        //蓝牙不可用退出程序
+        if (mService.isAvailable() == false) {
+            Toast.makeText(this, "蓝牙未链接", Toast.LENGTH_LONG).show();
+            finish();
+        }
+
+
         btn_A = (Button) findViewById(R.id.btn_getA);
         btn_A.setOnClickListener(this);
         btn_B = (Button) findViewById(R.id.btn_getB);
@@ -178,6 +206,33 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     @Override
+    public void onStart() {
+        super.onStart();
+        //蓝牙未打开，打开蓝牙
+        if (mService.isBTopen() == false) {
+            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+
+        }
+        Intent serverIntent = new Intent(MainActivity.this, DeviceListActivity.class);      //运行另外一个类的活动
+        startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+    }
+
+
+    private void parseJSONWithJSONObject(String jsonData, String key1, String key2, String key3) {
+        try {
+            JSONObject jsonObject = new JSONObject(jsonData);
+            frontNum = jsonObject.getString(key1);
+            myNum = jsonObject.getString(key2);
+            nowNum = jsonObject.getString(key3);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    @Override
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.btn_getA:
@@ -197,7 +252,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         //使用Request.Builder来创建请求对象
                         Request.Builder builder = new Request.Builder();
                         //指定使用GET请求,并且指定要请求的地址
-                        Request request = builder.get().url("http://59.46.10.16:80/web-frame/order/insert.do?ordertype=A&gettype=pb").build();
+                        final Request request = builder.get().url("http://59.46.10.16:80/web-frame/order/insert.do?ordertype=A&gettype=pb").build();
                         //将请求加入请求队列,将请求封装成Call对象
                         Call call = client.newCall(request);
                         //使用异步的方式来得到请求的响应并且处理
@@ -215,12 +270,68 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                             @Override
                             public void onResponse(Call call, final Response response) throws IOException {
+
+//                                "frontNum":1,
+//                                        "myNum":"A16",
+//                                        "nowNum":"A15"
                                 //请求成功
                                 //此处非UI线程
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        Log.d("点餐", response.body().toString());
+                                        String datas;
+                                        try {
+                                            datas = response.body().string();
+                                            Log.d("点餐", datas);
+                                            parseJSONWithJSONObject(datas, "frontNum", "myNum", "nowNum");
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+
+                                        //------------------------------------------------------------
+                                        //开启打印
+                                        //打印的信息
+                                        StringBuffer buffer1 = new StringBuffer();
+                                        StringBuffer buffer2 = new StringBuffer();
+                                        try {
+                                            String currTime = DateUtils.getStandardDate(System.currentTimeMillis()); //当前时间
+                                            buffer1.append("取票时间：").append(currTime).append("\n\n");
+                                        } catch (ParseException e) {
+                                            e.printStackTrace();
+                                        }
+                                        String title = PrintUtils.printTitle("店名");
+                                        buffer1.append(title).append("\n\n");
+                                        String msg1 = PrintUtils.printThreeData("", "您的桌号为", "");
+                                        buffer1.append(msg1).append("\n");
+
+                                        String msg0 = buffer1.toString();
+
+                                        mService.sendMessage(msg0 + "\n", "GBK");
+
+
+                                        byte[] cmd = new byte[3];
+                                        cmd[0] = 0x1b;//00011011
+                                        cmd[1] = 0x21;//00100001
+                                        cmd[2] |= 0x30;
+                                        mService.write(cmd);
+                                        mService.sendMessage("      " + myNum + "\n\n\n", "GBK");
+
+                                        cmd[2] &= 000000000;
+                                        mService.write(cmd);
+
+
+                                        String msg10 = PrintUtils.printThreeData("", "前方还有" + frontNum + "桌", "");
+                                        buffer2.append(msg10).append("\n\n");
+                                        String msg11 = PrintUtils.printThreeData("", "目前已到" + nowNum + "桌", "");
+                                        buffer2.append(msg11).append("\n\n");
+
+                                        String msg = buffer2.toString();
+
+
+                                        mService.sendMessage(msg + "\n", "GBK");
+
+                                        //--------------------------------------------------------------------
+
                                         sendRequestWithHttpUrlConnection();
                                     }
                                 });
@@ -277,7 +388,58 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        Log.d("点餐", response.body().toString());
+                                        String datas;
+                                        try {
+                                            datas = response.body().string();
+                                            Log.d("点餐", datas);
+                                            parseJSONWithJSONObject(datas, "frontNum", "myNum", "nowNum");
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+
+                                        //------------------------------------------------------------
+                                        //开启打印
+                                        //打印的信息
+                                        StringBuffer buffer1 = new StringBuffer();
+                                        StringBuffer buffer2 = new StringBuffer();
+                                        try {
+                                            String currTime = DateUtils.getStandardDate(System.currentTimeMillis()); //当前时间
+                                            buffer1.append("取票时间：").append(currTime).append("\n\n");
+                                        } catch (ParseException e) {
+                                            e.printStackTrace();
+                                        }
+                                        String title = PrintUtils.printTitle("店名");
+                                        buffer1.append(title).append("\n\n");
+                                        String msg1 = PrintUtils.printThreeData("", "您的桌号为", "");
+                                        buffer1.append(msg1).append("\n");
+
+                                        String msg0 = buffer1.toString();
+
+                                        mService.sendMessage(msg0 + "\n", "GBK");
+
+
+                                        byte[] cmd = new byte[3];
+                                        cmd[0] = 0x1b;//00011011
+                                        cmd[1] = 0x21;//00100001
+                                        cmd[2] |= 0x30;
+                                        mService.write(cmd);
+                                        mService.sendMessage("      " + myNum + "\n\n\n", "GBK");
+
+                                        cmd[2] &= 000000000;
+                                        mService.write(cmd);
+
+
+                                        String msg10 = PrintUtils.printThreeData("", "前方还有" + frontNum + "桌", "");
+                                        buffer2.append(msg10).append("\n\n");
+                                        String msg11 = PrintUtils.printThreeData("", "目前已到" + nowNum + "桌", "");
+                                        buffer2.append(msg11).append("\n\n");
+
+                                        String msg = buffer2.toString();
+
+
+                                        mService.sendMessage(msg + "\n", "GBK");
+                                        //--------------------------------------------------------------------
+
                                         sendRequestWithHttpUrlConnection();
                                     }
                                 });
@@ -335,13 +497,59 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
+                                        String datas;
                                         try {
-                                            Log.d("点餐", response.body().string());
+                                            datas = response.body().string();
+                                            Log.d("点餐", datas);
+                                            parseJSONWithJSONObject(datas, "frontNum", "myNum", "nowNum");
                                         } catch (IOException e) {
                                             e.printStackTrace();
                                         }
+
+                                        //------------------------------------------------------------
+                                        //开启打印
+                                        //打印的信息
+                                        StringBuffer buffer1 = new StringBuffer();
+                                        StringBuffer buffer2 = new StringBuffer();
+                                        try {
+                                            String currTime = DateUtils.getStandardDate(System.currentTimeMillis()); //当前时间
+                                            buffer1.append("取票时间：").append(currTime).append("\n\n");
+                                        } catch (ParseException e) {
+                                            e.printStackTrace();
+                                        }
+                                        String title = PrintUtils.printTitle("店名");
+                                        buffer1.append(title).append("\n\n");
+                                        String msg1 = PrintUtils.printThreeData("", "您的桌号为", "");
+                                        buffer1.append(msg1).append("\n");
+
+                                        String msg0 = buffer1.toString();
+
+                                        mService.sendMessage(msg0 + "\n", "GBK");
+
+
+                                        byte[] cmd = new byte[3];
+                                        cmd[0] = 0x1b;//00011011
+                                        cmd[1] = 0x21;//00100001
+                                        cmd[2] |= 0x30;
+                                        mService.write(cmd);
+                                        mService.sendMessage("      " + myNum + "\n\n\n", "GBK");
+
+                                        cmd[2] &= 000000000;
+                                        mService.write(cmd);
+
+
+                                        String msg10 = PrintUtils.printThreeData("", "前方还有" + frontNum + "桌", "");
+                                        buffer2.append(msg10).append("\n\n");
+                                        String msg11 = PrintUtils.printThreeData("", "目前已到" + nowNum + "桌", "");
+                                        buffer2.append(msg11).append("\n\n");
+
+                                        String msg = buffer2.toString();
+
+
+                                        mService.sendMessage(msg + "\n", "GBK");
+                                        //--------------------------------------------------------------------
                                         sendRequestWithHttpUrlConnection();
-                                        //----------------------------------------------------打印   response.body().string()   ---------------------
+
                                     }
                                 });
                             }
@@ -360,7 +568,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
 
             case R.id.btn_connect:
-                    btn_connect.setBackgroundResource(R.mipmap.icon_connected);
+                //搜索蓝牙设备
+                Intent serverIntent = new Intent(MainActivity.this, DeviceListActivity.class);      //运行另外一个类的活动
+                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+                break;
+        }
+    }
+
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_ENABLE_BT:
+                //请求打开蓝牙
+                if (resultCode == Activity.RESULT_OK) {
+                    //蓝牙已经打开
+                    Toast.makeText(this, "Bluetooth open successful", Toast.LENGTH_LONG).show();
+                } else {
+                    //用户不允许打开蓝牙
+                    finish();
+                }
+                break;
+            case REQUEST_CONNECT_DEVICE:
+                //请求连接某一蓝牙设备
+                if (resultCode == Activity.RESULT_OK) {
+                    //已点击搜索列表中的某个设备项
+                    String address = data.getExtras()
+                            .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+                    //获取列表项中设备的mac地址
+                    con_dev = mService.getDevByMac(address);
+                    mService.connect(con_dev);
+                }
                 break;
         }
     }
@@ -516,11 +754,55 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }).start();
     }
 
+    /**
+     * 创建一个Handler实例，用于接收BluetoothService类返回回来的消息
+     */
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case BluetoothService.MESSAGE_STATE_CHANGE:
+                    switch (msg.arg1) {
+                        case BluetoothService.STATE_CONNECTED:
+                            //已连接
+                            Toast.makeText(getApplicationContext(), "Connect successful",
+                                    Toast.LENGTH_SHORT).show();
+                            btn_connect.setBackgroundResource(R.mipmap.icon_connected);
+                            break;
+                        case BluetoothService.STATE_CONNECTING:
+                            //正在连接
+                            Log.i("Bluetooth", ".....is connecting");
+                            break;
+                        case BluetoothService.STATE_LISTEN:
+                            //监听连接的到来
+                        case BluetoothService.STATE_NONE:
+                            Log.i("Bluetooth", ".....wait connecting");
+                            break;
+                    }
+                    break;
+                case BluetoothService.MESSAGE_CONNECTION_LOST:
+                    //蓝牙已断开连接
+                    Toast.makeText(getApplicationContext(), "Device connection was lost",
+                            Toast.LENGTH_SHORT).show();
+                    btn_connect.setBackgroundResource(R.mipmap.icon_printing);
+                    break;
+                case BluetoothService.MESSAGE_UNABLE_CONNECT:
+                    //无法连接设备
+                    Toast.makeText(getApplicationContext(), "Unable to connect device",
+                            Toast.LENGTH_SHORT).show();
+                    break;
+            }
+        }
+
+    };
+
+
     //定时器
     CountDownTimer cdt = new CountDownTimer(99999999, 30 * 1000) {
         @Override
         public void onTick(long l) {
             //刷新view
+            sendRequestWithHttpUrlConnection();
 
         }
 
