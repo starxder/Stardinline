@@ -6,31 +6,28 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import com.example.starxder.stardinline.Beans.Order;
 import com.example.starxder.stardinline.Adapter.OrderAdapter;
+import com.example.starxder.stardinline.Beans.Order;
 import com.example.starxder.stardinline.R;
+import com.example.starxder.stardinline.Utils.CommonUtil;
 import com.example.starxder.stardinline.Utils.DateUtils;
-import com.example.starxder.stardinline.Utils.OkManager;
 import com.example.starxder.stardinline.Utils.PrintUtils;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.zj.btsdk.BluetoothService;
 
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -42,6 +39,7 @@ import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -49,7 +47,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends Activity implements View.OnClickListener {
 
     private List<Order> list_A = new ArrayList<Order>();
     private List<Order> list_B = new ArrayList<Order>();
@@ -72,7 +70,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        getSupportActionBar().hide();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -248,11 +245,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
                         //首先创建请求的客户端对象
-                        OkHttpClient client = new OkHttpClient();
+                        OkHttpClient client = new OkHttpClient.Builder().connectTimeout(60*1000, TimeUnit.SECONDS).build();
                         //使用Request.Builder来创建请求对象
                         Request.Builder builder = new Request.Builder();
+
                         //指定使用GET请求,并且指定要请求的地址
-                        final Request request = builder.get().url("http://59.46.10.16:80/web-frame/order/insert.do?ordertype=A&gettype=pb").build();
+                        final Request request = builder.get().url(CommonUtil.BaseUrl +"/web-frame/order/insert.do?ordertype=A&gettype=pb").build();
                         //将请求加入请求队列,将请求封装成Call对象
                         Call call = client.newCall(request);
                         //使用异步的方式来得到请求的响应并且处理
@@ -365,7 +363,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         //使用Request.Builder来创建请求对象
                         Request.Builder builder = new Request.Builder();
                         //指定使用GET请求,并且指定要请求的地址
-                        Request request = builder.get().url("http://59.46.10.16:80/web-frame/order/insert.do?ordertype=B&gettype=pb").build();
+                        Request request = builder.get().url(CommonUtil.BaseUrl +"/web-frame/order/insert.do?ordertype=B&gettype=pb").build();
                         //将请求加入请求队列,将请求封装成Call对象
                         Call call = client.newCall(request);
                         //使用异步的方式来得到请求的响应并且处理
@@ -474,7 +472,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         //使用Request.Builder来创建请求对象
                         Request.Builder builder = new Request.Builder();
                         //指定使用GET请求,并且指定要请求的地址
-                        Request request = builder.get().url("http://59.46.10.16:80/web-frame/order/insert.do?ordertype=C&gettype=pb").build();
+                        Request request = builder.get().url(CommonUtil.BaseUrl +"/web-frame/order/insert.do?ordertype=C&gettype=pb").build();
                         //将请求加入请求队列,将请求封装成Call对象
                         Call call = client.newCall(request);
                         //使用异步的方式来得到请求的响应并且处理
@@ -660,7 +658,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //使用Request.Builder来创建请求对象
         Request.Builder builder = new Request.Builder();
         //指定使用GET请求,并且指定要请求的地址
-        Request request = builder.get().url("http://59.46.10.16:80/web-frame/order/update.do?ordercode=" + ordercode + "&&dealtype=" + dealtype).build();
+        Request request = builder.get().url(CommonUtil.BaseUrl +"/web-frame/order/update.do?ordercode=" + ordercode + "&&dealtype=" + dealtype).build();
         //将请求加入请求队列,将请求封装成Call对象
         Call call = client.newCall(request);
         //使用异步的方式来得到请求的响应并且处理
@@ -723,7 +721,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void run() {
                 HttpURLConnection connection = null;
                 try {
-                    URL url = new URL("http://59.46.10.16:80/web-frame/order/init.do?");
+                    URL url = new URL(CommonUtil.BaseUrl +"/web-frame/order/init.do?");
                     connection = (HttpURLConnection) url.openConnection();
                     connection.setRequestMethod("GET");
                     connection.setConnectTimeout(8 * 1000);
