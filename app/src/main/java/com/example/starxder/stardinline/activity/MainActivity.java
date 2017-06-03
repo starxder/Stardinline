@@ -1,4 +1,4 @@
-package com.example.starxder.stardinline.activity;
+package com.example.starxder.stardinline.Activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -10,7 +10,6 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -20,6 +19,8 @@ import android.widget.Toast;
 
 import com.example.starxder.stardinline.Adapter.OrderAdapter;
 import com.example.starxder.stardinline.Beans.Order;
+import com.example.starxder.stardinline.Beans.User;
+import com.example.starxder.stardinline.Dao.UserDao;
 import com.example.starxder.stardinline.R;
 import com.example.starxder.stardinline.Utils.CommonUtil;
 import com.example.starxder.stardinline.Utils.DateUtils;
@@ -49,23 +50,21 @@ import okhttp3.Response;
 
 public class MainActivity extends Activity implements View.OnClickListener {
 
-    private List<Order> list_A = new ArrayList<Order>();
-    private List<Order> list_B = new ArrayList<Order>();
-    private List<Order> list_C = new ArrayList<Order>();
-    private List<Order> list_all;
+    private List<Order> list_A = new ArrayList();
+    private List<Order> list_B = new ArrayList();
+    private List<Order> list_C = new ArrayList();
     private Button btn_A, btn_B, btn_C, btn_connect;
     public static final int SHOW_RESPONSE = 0;
-    private OrderAdapter adapter_A;
-    private OrderAdapter adapter_B;
-    private OrderAdapter adapter_C;
-    private ListView listView_A;
-    private ListView listView_B;
-    private ListView listView_C;
+    private OrderAdapter adapter_A, adapter_B, adapter_C;
+    private ListView listView_A, listView_B, listView_C;
     BluetoothService mService = null;
     private static final int REQUEST_CONNECT_DEVICE = 1;  //获取设备消息
     BluetoothDevice con_dev = null;
     private static final int REQUEST_ENABLE_BT = 2;
-    String frontNum, myNum, nowNum;
+    String frontNum, myNum, nowNum, tableName, TAG = "MainActivity";
+    AlertDialog.Builder get_alert;
+    UserDao userDao;
+    User user;
 
 
     @Override
@@ -80,7 +79,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             finish();
         }
 
-
         btn_A = (Button) findViewById(R.id.btn_getA);
         btn_A.setOnClickListener(this);
         btn_B = (Button) findViewById(R.id.btn_getB);
@@ -89,9 +87,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
         btn_C.setOnClickListener(this);
         btn_connect = (Button) findViewById(R.id.btn_connect);
         btn_connect.setOnClickListener(this);
-//        ---------------------瞎编数据-----------------------
-        sendRequestWithHttpUrlConnection();
-
 
         adapter_A = new OrderAdapter(MainActivity.this, R.layout.orderitem, list_A);
         adapter_B = new OrderAdapter(MainActivity.this, R.layout.orderitem, list_B);
@@ -102,28 +97,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         listView_A.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                final Order order = list_A.get(position);
-                AlertDialog.Builder Item_alert = new AlertDialog.Builder(MainActivity.this);
-                Item_alert.setTitle("点餐系统");
-                Item_alert.setMessage("请选择您的操作");
-                Item_alert.setCancelable(true);
-                Item_alert.setPositiveButton("用餐", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        //确定用餐执行方法，发送请求！
-                        update(order.getOrdercode(), "a");
-
-
-                    }
-                });
-                Item_alert.setNegativeButton("过号", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        //确定过号行方法，发送请求！
-                        update(order.getOrdercode(), "b");
-                    }
-                });
-                Item_alert.show();
+                itemClick(position, list_A);
             }
         });
 
@@ -132,28 +106,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         listView_B.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                final Order order = list_B.get(position);
-                AlertDialog.Builder Item_alert = new AlertDialog.Builder(MainActivity.this);
-                Item_alert.setTitle("点餐系统");
-                Item_alert.setMessage("请选择您的操作");
-                Item_alert.setCancelable(true);
-                Item_alert.setPositiveButton("用餐", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        //确定用餐执行方法，发送请求！
-                        update(order.getOrdercode(), "a");
-
-
-                    }
-                });
-                Item_alert.setNegativeButton("过号", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        //确定过号行方法，发送请求！
-                        update(order.getOrdercode(), "b");
-                    }
-                });
-                Item_alert.show();
+                itemClick(position, list_B);
             }
         });
 
@@ -163,42 +116,22 @@ public class MainActivity extends Activity implements View.OnClickListener {
         listView_C.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                final Order order = list_C.get(position);
-                AlertDialog.Builder Item_alert = new AlertDialog.Builder(MainActivity.this);
-                Item_alert.setTitle("点餐系统");
-                Item_alert.setMessage("请选择您的操作");
-                Item_alert.setCancelable(true);
-                Item_alert.setPositiveButton("用餐", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        //确定用餐执行方法，发送请求！
-                        update(order.getOrdercode(), "a");
-
-
-                    }
-                });
-                Item_alert.setNegativeButton("过号", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        //确定过号行方法，发送请求！
-                        update(order.getOrdercode(), "b");
-                    }
-                });
-                Item_alert.show();
+                itemClick(position, list_C);
             }
         });
 
 
         listView_A.setAdapter(adapter_A);
-
-
         listView_B.setAdapter(adapter_B);
-
-
         listView_C.setAdapter(adapter_C);
 
-
         cdt.start();
+
+        Intent intent = getIntent();
+        tableName = intent.getStringExtra("extra");
+        Log.i(TAG, "onCreate: " + tableName);
+        sendRequestWithHttpUrlConnection();
+        get_alert = new AlertDialog.Builder(MainActivity.this);
     }
 
 
@@ -233,342 +166,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.btn_getA:
-                AlertDialog.Builder getA_alert = new AlertDialog.Builder(MainActivity.this);
-                getA_alert.setTitle("点餐系统");
-                getA_alert.setMessage("确定要取A类桌号吗？");
-                getA_alert.setCancelable(true);
-                getA_alert.setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-
-                        //确定取号执行方法，发送请求！
-
-
-                        //首先创建请求的客户端对象
-                        OkHttpClient client = new OkHttpClient.Builder().connectTimeout(60*1000, TimeUnit.SECONDS).build();
-                        //使用Request.Builder来创建请求对象
-                        Request.Builder builder = new Request.Builder();
-
-                        //指定使用GET请求,并且指定要请求的地址
-                        final Request request = builder.get().url(CommonUtil.BaseUrl +"/web-frame/order/insert.do?ordertype=A&gettype=pb").build();
-                        //将请求加入请求队列,将请求封装成Call对象
-                        Call call = client.newCall(request);
-                        //使用异步的方式来得到请求的响应并且处理
-                        call.enqueue(new Callback() {
-                            @Override
-                            public void onFailure(Call call, IOException e) {
-                                //请求失败
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        Toast.makeText(getApplicationContext(), "网络异常", Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-                            }
-
-                            @Override
-                            public void onResponse(Call call, final Response response) throws IOException {
-
-//                                "frontNum":1,
-//                                        "myNum":"A16",
-//                                        "nowNum":"A15"
-                                //请求成功
-                                //此处非UI线程
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        String datas;
-                                        try {
-                                            datas = response.body().string();
-                                            Log.d("点餐", datas);
-                                            parseJSONWithJSONObject(datas, "frontNum", "myNum", "nowNum");
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                        }
-
-                                        //------------------------------------------------------------
-                                        //开启打印
-                                        //打印的信息
-                                        StringBuffer buffer1 = new StringBuffer();
-                                        StringBuffer buffer2 = new StringBuffer();
-                                        try {
-                                            String currTime = DateUtils.getStandardDate(System.currentTimeMillis()); //当前时间
-                                            buffer1.append("取票时间：").append(currTime).append("\n\n");
-                                        } catch (ParseException e) {
-                                            e.printStackTrace();
-                                        }
-                                        String title = PrintUtils.printTitle("店名");
-                                        buffer1.append(title).append("\n\n");
-                                        String msg1 = PrintUtils.printThreeData("", "您的桌号为", "");
-                                        buffer1.append(msg1).append("\n");
-
-                                        String msg0 = buffer1.toString();
-
-                                        mService.sendMessage(msg0 + "\n", "GBK");
-
-
-                                        byte[] cmd = new byte[3];
-                                        cmd[0] = 0x1b;//00011011
-                                        cmd[1] = 0x21;//00100001
-                                        cmd[2] |= 0x30;
-                                        mService.write(cmd);
-                                        mService.sendMessage("      " + myNum + "\n\n\n", "GBK");
-
-                                        cmd[2] &= 000000000;
-                                        mService.write(cmd);
-
-
-                                        String msg10 = PrintUtils.printThreeData("", "前方还有" + frontNum + "桌", "");
-                                        buffer2.append(msg10).append("\n\n");
-                                        String msg11 = PrintUtils.printThreeData("", "目前已到" + nowNum + "桌", "");
-                                        buffer2.append(msg11).append("\n\n");
-
-                                        String msg = buffer2.toString();
-
-
-                                        mService.sendMessage(msg + "\n", "GBK");
-
-                                        //--------------------------------------------------------------------
-
-                                        sendRequestWithHttpUrlConnection();
-                                    }
-                                });
-                            }
-                        });
-
-
-                    }
-                });
-                getA_alert.setNegativeButton("取消", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-
-                    }
-                });
-                getA_alert.show();
-
+                getOrder("A");
                 break;
-
             case R.id.btn_getB:
-                AlertDialog.Builder getB_alert = new AlertDialog.Builder(MainActivity.this);
-                getB_alert.setTitle("点餐系统");
-                getB_alert.setMessage("确定要取B类桌号吗？");
-                getB_alert.setCancelable(true);
-                getB_alert.setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        //确定取号执行方法，发送请求！
-                        //首先创建请求的客户端对象
-                        OkHttpClient client = new OkHttpClient();
-                        //使用Request.Builder来创建请求对象
-                        Request.Builder builder = new Request.Builder();
-                        //指定使用GET请求,并且指定要请求的地址
-                        Request request = builder.get().url(CommonUtil.BaseUrl +"/web-frame/order/insert.do?ordertype=B&gettype=pb").build();
-                        //将请求加入请求队列,将请求封装成Call对象
-                        Call call = client.newCall(request);
-                        //使用异步的方式来得到请求的响应并且处理
-                        call.enqueue(new Callback() {
-                            @Override
-                            public void onFailure(Call call, IOException e) {
-                                //请求失败
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        Toast.makeText(getApplicationContext(), "网络异常", Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-                            }
-
-                            @Override
-                            public void onResponse(Call call, final Response response) throws IOException {
-                                //请求成功
-                                //此处非UI线程
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        String datas;
-                                        try {
-                                            datas = response.body().string();
-                                            Log.d("点餐", datas);
-                                            parseJSONWithJSONObject(datas, "frontNum", "myNum", "nowNum");
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                        }
-
-                                        //------------------------------------------------------------
-                                        //开启打印
-                                        //打印的信息
-                                        StringBuffer buffer1 = new StringBuffer();
-                                        StringBuffer buffer2 = new StringBuffer();
-                                        try {
-                                            String currTime = DateUtils.getStandardDate(System.currentTimeMillis()); //当前时间
-                                            buffer1.append("取票时间：").append(currTime).append("\n\n");
-                                        } catch (ParseException e) {
-                                            e.printStackTrace();
-                                        }
-                                        String title = PrintUtils.printTitle("店名");
-                                        buffer1.append(title).append("\n\n");
-                                        String msg1 = PrintUtils.printThreeData("", "您的桌号为", "");
-                                        buffer1.append(msg1).append("\n");
-
-                                        String msg0 = buffer1.toString();
-
-                                        mService.sendMessage(msg0 + "\n", "GBK");
-
-
-                                        byte[] cmd = new byte[3];
-                                        cmd[0] = 0x1b;//00011011
-                                        cmd[1] = 0x21;//00100001
-                                        cmd[2] |= 0x30;
-                                        mService.write(cmd);
-                                        mService.sendMessage("      " + myNum + "\n\n\n", "GBK");
-
-                                        cmd[2] &= 000000000;
-                                        mService.write(cmd);
-
-
-                                        String msg10 = PrintUtils.printThreeData("", "前方还有" + frontNum + "桌", "");
-                                        buffer2.append(msg10).append("\n\n");
-                                        String msg11 = PrintUtils.printThreeData("", "目前已到" + nowNum + "桌", "");
-                                        buffer2.append(msg11).append("\n\n");
-
-                                        String msg = buffer2.toString();
-
-
-                                        mService.sendMessage(msg + "\n", "GBK");
-                                        //--------------------------------------------------------------------
-
-                                        sendRequestWithHttpUrlConnection();
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-                getB_alert.setNegativeButton("取消", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-
-                    }
-                });
-                getB_alert.show();
-
-
+                getOrder("B");
                 break;
-
             case R.id.btn_getC:
-
-                AlertDialog.Builder getC_alert = new AlertDialog.Builder(MainActivity.this);
-                getC_alert.setTitle("点餐系统");
-                getC_alert.setMessage("确定要取C类桌号吗？");
-                getC_alert.setCancelable(true);
-                getC_alert.setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        //确定取号执行方法，发送请求！
-
-                        //首先创建请求的客户端对象
-                        OkHttpClient client = new OkHttpClient();
-                        //使用Request.Builder来创建请求对象
-                        Request.Builder builder = new Request.Builder();
-                        //指定使用GET请求,并且指定要请求的地址
-                        Request request = builder.get().url(CommonUtil.BaseUrl +"/web-frame/order/insert.do?ordertype=C&gettype=pb").build();
-                        //将请求加入请求队列,将请求封装成Call对象
-                        Call call = client.newCall(request);
-                        //使用异步的方式来得到请求的响应并且处理
-                        call.enqueue(new Callback() {
-                            @Override
-                            public void onFailure(Call call, IOException e) {
-                                //请求失败
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        Toast.makeText(getApplicationContext(), "网络异常", Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-                            }
-
-                            @Override
-                            public void onResponse(Call call, final Response response) throws IOException {
-                                //请求成功
-                                //此处非UI线程
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        String datas;
-                                        try {
-                                            datas = response.body().string();
-                                            Log.d("点餐", datas);
-                                            parseJSONWithJSONObject(datas, "frontNum", "myNum", "nowNum");
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                        }
-
-                                        //------------------------------------------------------------
-                                        //开启打印
-                                        //打印的信息
-                                        StringBuffer buffer1 = new StringBuffer();
-                                        StringBuffer buffer2 = new StringBuffer();
-                                        try {
-                                            String currTime = DateUtils.getStandardDate(System.currentTimeMillis()); //当前时间
-                                            buffer1.append("取票时间：").append(currTime).append("\n\n");
-                                        } catch (ParseException e) {
-                                            e.printStackTrace();
-                                        }
-                                        String title = PrintUtils.printTitle("店名");
-                                        buffer1.append(title).append("\n\n");
-                                        String msg1 = PrintUtils.printThreeData("", "您的桌号为", "");
-                                        buffer1.append(msg1).append("\n");
-
-                                        String msg0 = buffer1.toString();
-
-                                        mService.sendMessage(msg0 + "\n", "GBK");
-
-
-                                        byte[] cmd = new byte[3];
-                                        cmd[0] = 0x1b;//00011011
-                                        cmd[1] = 0x21;//00100001
-                                        cmd[2] |= 0x30;
-                                        mService.write(cmd);
-                                        mService.sendMessage("      " + myNum + "\n\n\n", "GBK");
-
-                                        cmd[2] &= 000000000;
-                                        mService.write(cmd);
-
-
-                                        String msg10 = PrintUtils.printThreeData("", "前方还有" + frontNum + "桌", "");
-                                        buffer2.append(msg10).append("\n\n");
-                                        String msg11 = PrintUtils.printThreeData("", "目前已到" + nowNum + "桌", "");
-                                        buffer2.append(msg11).append("\n\n");
-
-                                        String msg = buffer2.toString();
-
-
-                                        mService.sendMessage(msg + "\n", "GBK");
-                                        //--------------------------------------------------------------------
-                                        sendRequestWithHttpUrlConnection();
-
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-                getC_alert.setNegativeButton("取消", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-
-                    }
-                });
-                getC_alert.show();
-
-
-                break;
-
-            case R.id.btn_connect:
-                //搜索蓝牙设备
-                Intent serverIntent = new Intent(MainActivity.this, DeviceListActivity.class);      //运行另外一个类的活动
-                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+                getOrder("C");
                 break;
         }
     }
@@ -636,14 +240,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     String response = (String) msg.obj;
                     Log.d("response", response);
                     List<Order> list = getListOrderByGson(response);
-                    list_all = getListOrderByGson(response);
                     //得到所有的Json数据
-                    initData(list_all);
-
+                    initData(list);
                     adapter_A.notifyDataSetChanged();
                     adapter_B.notifyDataSetChanged();
                     adapter_C.notifyDataSetChanged();
-
                     break;
             }
 
@@ -651,14 +252,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
     };
 
     private void update(String ordercode, String dealtype) {
-        //确定取号执行方法，发送请求！
+        //过号或者就餐
 
         //首先创建请求的客户端对象
         OkHttpClient client = new OkHttpClient();
         //使用Request.Builder来创建请求对象
         Request.Builder builder = new Request.Builder();
         //指定使用GET请求,并且指定要请求的地址
-        Request request = builder.get().url(CommonUtil.BaseUrl +"/web-frame/order/update.do?ordercode=" + ordercode + "&&dealtype=" + dealtype).build();
+        Request request = builder.get().url(CommonUtil.BaseUrl + "/web-frame/order/update.do?ordercode=" + ordercode + "&dealtype=" + dealtype + "&ordertable=" + tableName).build();
         //将请求加入请求队列,将请求封装成Call对象
         Call call = client.newCall(request);
         //使用异步的方式来得到请求的响应并且处理
@@ -721,7 +322,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             public void run() {
                 HttpURLConnection connection = null;
                 try {
-                    URL url = new URL(CommonUtil.BaseUrl +"/web-frame/order/init.do?");
+                    URL url = new URL(CommonUtil.BaseUrl + "/web-frame/order/init.do?ordertable=" + tableName);
                     connection = (HttpURLConnection) url.openConnection();
                     connection.setRequestMethod("GET");
                     connection.setConnectTimeout(8 * 1000);
@@ -794,6 +395,144 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     };
 
+    public void getOrder(final String type) {
+        get_alert.setTitle("点餐系统");
+        get_alert.setMessage("确定要取A类桌号吗？");
+        get_alert.setCancelable(true);
+        get_alert.setPositiveButton("确定", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+
+                //确定取号执行方法，发送请求！
+
+
+                //首先创建请求的客户端对象
+                OkHttpClient client = new OkHttpClient.Builder().connectTimeout(60 * 1000, TimeUnit.SECONDS).build();
+                //使用Request.Builder来创建请求对象
+                Request.Builder builder = new Request.Builder();
+
+                //指定使用GET请求,并且指定要请求的地址
+                final Request request = builder.get().url(CommonUtil.BaseUrl + "/web-frame/order/insert.do?ordertype=" + type + "&gettype=pb&openid=&ordertable=" + tableName).build();
+                //将请求加入请求队列,将请求封装成Call对象
+                Call call = client.newCall(request);
+                //使用异步的方式来得到请求的响应并且处理
+                call.enqueue(new Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        //请求失败
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(getApplicationContext(), "网络异常", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onResponse(Call call, final Response response) throws IOException {
+
+                        //请求成功
+                        //此处非UI线程
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                String datas;
+                                try {
+                                    datas = response.body().string();
+                                    Log.d("点餐", datas);
+                                    parseJSONWithJSONObject(datas, "frontNum", "myNum", "nowNum");
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+
+                                //------------------------------------------------------------
+                                //开启打印
+                                //打印的信息
+                                StringBuffer buffer1 = new StringBuffer();
+                                StringBuffer buffer2 = new StringBuffer();
+                                try {
+                                    String currTime = DateUtils.getStandardDate(System.currentTimeMillis()); //当前时间
+                                    buffer1.append("取票时间：").append(currTime).append("\n\n");
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                                String title = PrintUtils.printTitle("店名");
+                                buffer1.append(title).append("\n\n");
+                                String msg1 = PrintUtils.printThreeData("", "您的桌号为", "");
+                                buffer1.append(msg1).append("\n");
+
+                                String msg0 = buffer1.toString();
+
+                                mService.sendMessage(msg0 + "\n", "GBK");
+
+
+                                byte[] cmd = new byte[3];
+                                cmd[0] = 0x1b;//00011011
+                                cmd[1] = 0x21;//00100001
+                                cmd[2] |= 0x30;
+                                mService.write(cmd);
+                                mService.sendMessage("      " + myNum + "\n\n\n", "GBK");
+
+                                cmd[2] &= 000000000;
+                                mService.write(cmd);
+
+
+                                String msg10 = PrintUtils.printThreeData("", "前方还有" + frontNum + "桌", "");
+                                buffer2.append(msg10).append("\n\n");
+                                String msg11 = PrintUtils.printThreeData("", "目前已到" + nowNum + "桌", "");
+                                buffer2.append(msg11).append("\n\n");
+
+                                String msg = buffer2.toString();
+
+
+                                mService.sendMessage(msg + "\n", "GBK");
+
+                                //--------------------------------------------------------------------
+
+                                sendRequestWithHttpUrlConnection();
+                            }
+                        });
+                    }
+                });
+
+
+            }
+        });
+        get_alert.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+
+            }
+        });
+        get_alert.show();
+    }
+
+
+    public void itemClick(int position, List<Order> list) {
+
+        final Order order = list.get(position);
+        AlertDialog.Builder Item_alert = new AlertDialog.Builder(MainActivity.this);
+        Item_alert.setTitle("点餐系统");
+        Item_alert.setMessage("请选择您的操作");
+        Item_alert.setCancelable(true);
+        Item_alert.setPositiveButton("用餐", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                //确定用餐执行方法，发送请求！
+                update(order.getOrdercode(), "repast");
+
+
+            }
+        });
+        Item_alert.setNegativeButton("过号", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                //确定过号行方法，发送请求！
+                update(order.getOrdercode(), "pass");
+            }
+        });
+        Item_alert.show();
+    }
 
     //定时器
     CountDownTimer cdt = new CountDownTimer(99999999, 30 * 1000) {

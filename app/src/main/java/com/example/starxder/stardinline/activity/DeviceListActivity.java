@@ -1,4 +1,4 @@
-package com.example.starxder.stardinline.activity;
+package com.example.starxder.stardinline.Activity;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
