@@ -18,16 +18,16 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         >
-        <activity android:name=".activity.MainActivity"
+        <activity android:name=".Activity.MainActivity"
             android:theme="@android:style/Theme.Holo.Light.NoActionBar.TranslucentDecor">
 
         </activity>
         <activity
-            android:name=".activity.DeviceListActivity"
+            android:name=".Activity.DeviceListActivity"
             android:theme="@android:style/Theme.Dialog"
             />
         <activity
-            android:name=".activity.LoginActivity"
+            android:name=".Activity.LoginActivity"
             android:theme="@android:style/Theme.Holo.Light.NoActionBar.TranslucentDecor"
         >
             <intent-filter>

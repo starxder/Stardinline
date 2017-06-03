@@ -323,6 +323,9 @@ public class OkManager {
     //回调  
     public interface Fun1 {
         void onResponse(String result);
+        void onFailure(String result);
+
+
     }
 
     interface Fun2 {

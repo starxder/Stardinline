@@ -5,7 +5,7 @@
     android:background="@mipmap/background"
     android:gravity="center_horizontal"
     android:weightSum="1"
-    tools:context="com.example.starxder.stardinline.activity.LoginActivity">
+    tools:context="com.example.starxder.stardinline.Activity.LoginActivity">
 
     <!-- Login progress -->
 
