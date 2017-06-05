@@ -6,6 +6,8 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -14,6 +16,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -24,6 +27,7 @@ import com.example.starxder.stardinline.Dao.UserDao;
 import com.example.starxder.stardinline.R;
 import com.example.starxder.stardinline.Utils.CommonUtil;
 import com.example.starxder.stardinline.Utils.DateUtils;
+import com.example.starxder.stardinline.Utils.OkManager;
 import com.example.starxder.stardinline.Utils.PrintUtils;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -54,17 +58,21 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private List<Order> list_B = new ArrayList();
     private List<Order> list_C = new ArrayList();
     private Button btn_A, btn_B, btn_C, btn_connect;
+    private ImageView head_pic;
     public static final int SHOW_RESPONSE = 0;
     private OrderAdapter adapter_A, adapter_B, adapter_C;
     private ListView listView_A, listView_B, listView_C;
     BluetoothService mService = null;
-    private static final int REQUEST_CONNECT_DEVICE = 1;  //获取设备消息
     BluetoothDevice con_dev = null;
+    private static final int REQUEST_CONNECT_DEVICE = 1;  //获取设备消息
     private static final int REQUEST_ENABLE_BT = 2;
-    String frontNum, myNum, nowNum, tableName, TAG = "MainActivity";
+    private static final int SUCCESS = 1;
+    private static final int FALL = 2;
+    String frontNum, myNum, nowNum, loginName, tableName, TAG = "MainActivity", shopName, headpic_url;
     AlertDialog.Builder get_alert;
     UserDao userDao;
     User user;
+    private OkManager manager;
 
 
     @Override
@@ -72,28 +80,44 @@ public class MainActivity extends Activity implements View.OnClickListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mService = new BluetoothService(this, mHandler);
-        //蓝牙不可用退出程序
-        if (mService.isAvailable() == false) {
-            Toast.makeText(this, "蓝牙未链接", Toast.LENGTH_LONG).show();
-            finish();
-        }
+        get_alert = new AlertDialog.Builder(MainActivity.this);
+        userDao = new UserDao(MainActivity.this);
 
+        initView();
+        initEvent();
+
+        initBluctooth();
+        initUser();
+
+        sendRequestWithHttpUrlConnection();//刷新数据
+        cdt.start();
+    }
+
+    private void initView() {
         btn_A = (Button) findViewById(R.id.btn_getA);
-        btn_A.setOnClickListener(this);
         btn_B = (Button) findViewById(R.id.btn_getB);
-        btn_B.setOnClickListener(this);
         btn_C = (Button) findViewById(R.id.btn_getC);
-        btn_C.setOnClickListener(this);
         btn_connect = (Button) findViewById(R.id.btn_connect);
-        btn_connect.setOnClickListener(this);
-
+        head_pic = (ImageView) findViewById(R.id.head_pic);
+        listView_A = (ListView) findViewById(R.id.lv1);
+        listView_B = (ListView) findViewById(R.id.lv2);
+        listView_C = (ListView) findViewById(R.id.lv3);
         adapter_A = new OrderAdapter(MainActivity.this, R.layout.orderitem, list_A);
         adapter_B = new OrderAdapter(MainActivity.this, R.layout.orderitem, list_B);
         adapter_C = new OrderAdapter(MainActivity.this, R.layout.orderitem, list_C);
 
-        //-----------------------------------------A-------------------------------------------
-        listView_A = (ListView) findViewById(R.id.lv1);
+        listView_A.setAdapter(adapter_A);
+        listView_B.setAdapter(adapter_B);
+        listView_C.setAdapter(adapter_C);
+
+    }
+
+    private void initEvent() {
+        btn_A.setOnClickListener(this);
+        btn_B.setOnClickListener(this);
+        btn_C.setOnClickListener(this);
+        btn_connect.setOnClickListener(this);
+
         listView_A.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -101,8 +125,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
         });
 
-        //-----------------------------------------B-------------------------------------------
-        listView_B = (ListView) findViewById(R.id.lv2);
         listView_B.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -110,44 +132,63 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
         });
 
-
-        //-----------------------------------------C-------------------------------------------
-        listView_C = (ListView) findViewById(R.id.lv3);
         listView_C.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 itemClick(position, list_C);
             }
         });
-
-
-        listView_A.setAdapter(adapter_A);
-        listView_B.setAdapter(adapter_B);
-        listView_C.setAdapter(adapter_C);
-
-        cdt.start();
-
-        Intent intent = getIntent();
-        tableName = intent.getStringExtra("extra");
-        Log.i(TAG, "onCreate: " + tableName);
-        sendRequestWithHttpUrlConnection();
-        get_alert = new AlertDialog.Builder(MainActivity.this);
     }
 
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        //蓝牙未打开，打开蓝牙
-        if (mService.isBTopen() == false) {
-            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
-
+    private void initBluctooth() {
+        mService = new BluetoothService(this, mHandler);
+        //蓝牙不可用退出程序
+        if (mService.isAvailable() == false) {
+            Toast.makeText(this, "蓝牙未链接", Toast.LENGTH_LONG).show();
+            finish();
         }
-        Intent serverIntent = new Intent(MainActivity.this, DeviceListActivity.class);      //运行另外一个类的活动
-        startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
     }
 
+    private void initUser() {
+        Intent intent = getIntent();
+        loginName = intent.getStringExtra("extra");
+        user = userDao.queryByLoginName(loginName);
+
+        tableName = user.getOrdertable();
+        Log.i(TAG, "onCreate: " + tableName);
+
+        headpic_url = user.getHeadpicurl();
+
+        Log.i(TAG, "initUser: " + CommonUtil.BaseUrl + headpic_url);
+        //加载用户头像图片
+        //1.创建一个okhttpclient对象
+        OkHttpClient okHttpClient = new OkHttpClient();
+        //2.创建Request.Builder对象，设置参数，请求方式如果是Get，就不用设置，默认就是Get
+        Request request = new Request.Builder()
+                .url(CommonUtil.BaseUrl + headpic_url)
+                .build();
+        //3.创建一个Call对象，参数是request对象，发送请求
+        Call call = okHttpClient.newCall(request);
+        //4.异步请求，请求加入调度
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                //得到从网上获取资源，转换成我们想要的类型
+                byte[] Picture_bt = response.body().bytes();
+                //通过handler更新UI
+                Message message = headpichandler.obtainMessage();
+                message.obj = Picture_bt;
+                message.what = SUCCESS;
+                headpichandler.sendMessage(message);
+            }
+
+        });
+    }
 
     private void parseJSONWithJSONObject(String jsonData, String key1, String key2, String key3) {
         try {
@@ -161,7 +202,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
-
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -174,9 +214,20 @@ public class MainActivity extends Activity implements View.OnClickListener {
             case R.id.btn_getC:
                 getOrder("C");
                 break;
+            case R.id.btn_connect:
+                super.onStart();
+                //蓝牙未打开，打开蓝牙
+                if (mService.isBTopen() == false) {
+                    Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+
+                }
+                Intent serverIntent = new Intent(MainActivity.this, DeviceListActivity.class);      //运行另外一个类的活动
+                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+                break;
+
         }
     }
-
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -185,7 +236,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 //请求打开蓝牙
                 if (resultCode == Activity.RESULT_OK) {
                     //蓝牙已经打开
-                    Toast.makeText(this, "Bluetooth open successful", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "蓝牙成功开启", Toast.LENGTH_LONG).show();
                 } else {
                     //用户不允许打开蓝牙
                     finish();
@@ -204,7 +255,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 break;
         }
     }
-
 
     //监听返回键点击事件
     public void onBackPressed() {
@@ -232,7 +282,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
-
     private Handler handler = new Handler() {
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -241,13 +290,35 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     Log.d("response", response);
                     List<Order> list = getListOrderByGson(response);
                     //得到所有的Json数据
-                    initData(list);
+                    initListData(list);
                     adapter_A.notifyDataSetChanged();
                     adapter_B.notifyDataSetChanged();
                     adapter_C.notifyDataSetChanged();
                     break;
             }
 
+        }
+    };
+
+    private Handler headpichandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                //加载网络成功进行UI的更新,处理得到的图片资源
+                case SUCCESS:
+                    //通过message，拿到字节数组
+                    byte[] Picture = (byte[]) msg.obj;
+                    //使用BitmapFactory工厂，把字节数组转化为bitmap
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(Picture, 0, Picture.length);
+                    //通过imageview，设置图片
+                    head_pic.setImageBitmap(bitmap);
+
+                    break;
+                //当加载网络失败执行的逻辑代码
+                case FALL:
+                    Toast.makeText(MainActivity.this, "网络出现了问题", Toast.LENGTH_SHORT).show();
+                    break;
+            }
         }
     };
 
@@ -291,7 +362,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     }
 
-    private void initData(List<Order> list) {
+    private void initListData(List<Order> list) {
         list_A.clear();
         list_B.clear();
         list_C.clear();
@@ -364,7 +435,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     switch (msg.arg1) {
                         case BluetoothService.STATE_CONNECTED:
                             //已连接
-                            Toast.makeText(getApplicationContext(), "Connect successful",
+                            Toast.makeText(getApplicationContext(), "蓝牙连接成功",
                                     Toast.LENGTH_SHORT).show();
                             btn_connect.setBackgroundResource(R.mipmap.icon_connected);
                             break;
@@ -396,8 +467,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
     };
 
     public void getOrder(final String type) {
+        shopName = user.getUserName();
         get_alert.setTitle("点餐系统");
-        get_alert.setMessage("确定要取A类桌号吗？");
+        get_alert.setMessage("确定要取" + type + "类桌号吗？");
         get_alert.setCancelable(true);
         get_alert.setPositiveButton("确定", new DialogInterface.OnClickListener() {
             @Override
@@ -448,7 +520,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                                 //------------------------------------------------------------
                                 //开启打印
                                 //打印的信息
-                                StringBuffer buffer1 = new StringBuffer();
+                                StringBuilder buffer1 = new StringBuilder();
                                 StringBuffer buffer2 = new StringBuffer();
                                 try {
                                     String currTime = DateUtils.getStandardDate(System.currentTimeMillis()); //当前时间
@@ -456,7 +528,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                                 } catch (ParseException e) {
                                     e.printStackTrace();
                                 }
-                                String title = PrintUtils.printTitle("店名");
+                                String title = PrintUtils.printTitle(shopName);
                                 buffer1.append(title).append("\n\n");
                                 String msg1 = PrintUtils.printThreeData("", "您的桌号为", "");
                                 buffer1.append(msg1).append("\n");
@@ -548,6 +620,19 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         }
     };
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        //蓝牙未打开，打开蓝牙
+        if (mService.isBTopen() == false) {
+            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+
+        }
+        Intent serverIntent = new Intent(MainActivity.this, DeviceListActivity.class);      //运行另外一个类的活动
+        startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+    }
 }
 
 

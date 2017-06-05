@@ -8,7 +8,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
-
 import com.example.starxder.stardinline.Beans.Category;
 import com.example.starxder.stardinline.Beans.User;
 import com.example.starxder.stardinline.Dao.CategoryDao;
@@ -17,17 +16,13 @@ import com.example.starxder.stardinline.R;
 import com.example.starxder.stardinline.Utils.CommonUtil;
 import com.example.starxder.stardinline.Utils.GsonUtils;
 import com.example.starxder.stardinline.Utils.OkManager;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.List;
-
 /**
  * A login screen that offers login via email/password.
  */
 public class LoginActivity extends Activity implements View.OnClickListener {
-
     // UI references.
     private EditText mUsernameView;
     private EditText mPasswordView;
@@ -39,8 +34,6 @@ public class LoginActivity extends Activity implements View.OnClickListener {
     String userName;
     String passWord;
     UserDao userDao;
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,23 +43,15 @@ public class LoginActivity extends Activity implements View.OnClickListener {
         btn_login = (Button) findViewById(R.id.btn_login);
         btn_login.setOnClickListener(this);
         manager = OkManager.getInstance();
-
-
     }
-
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.btn_login:
-
                 Login();
-
                 break;
-
         }
     }
-
-
     private void Login() {
         userName = mUsernameView.getText().toString();
         passWord = mPasswordView.getText().toString();
@@ -87,26 +72,21 @@ public class LoginActivity extends Activity implements View.OnClickListener {
                         for (User user : userList) {
                             userDao.insert(user);
                         }
-
                         Toast.makeText(getApplicationContext(), "用户数据同步成功,", Toast.LENGTH_SHORT).show();
                         CategorySynchronize();
                     } else {
                         Toast.makeText(getApplicationContext(), "用户名或密码错误", Toast.LENGTH_SHORT).show();
                     }
-
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-
             }
-
             @Override
             public void onFailure(String result) {
                 Toast.makeText(getApplicationContext(), "网络连接失败", Toast.LENGTH_SHORT).show();
             }
         });
     }
-
     private void CategorySynchronize() {
         //登陆同步用户桌号分配数据
         final User user = userDao.queryByLoginName(userName);
@@ -128,19 +108,16 @@ public class LoginActivity extends Activity implements View.OnClickListener {
                         }
                         Toast.makeText(getApplicationContext(), "排队信息同步成功,", Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent();
-                        intent.putExtra("extra",user.getOrdertable());
+                        intent.putExtra("extra",user.getLoginName());
                         intent.setClass(LoginActivity.this, MainActivity.class);      //运行另外一个类的活动
                         startActivityForResult(intent, 1);
                     }else{
                         Toast.makeText(getApplicationContext(), "排队信息同步失败,", Toast.LENGTH_SHORT).show();
                     }
-
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-
             }
-
             @Override
             public void onFailure(String result) {
                 Toast.makeText(getApplicationContext(), "网络连接失败", Toast.LENGTH_SHORT).show();
@@ -148,4 +125,3 @@ public class LoginActivity extends Activity implements View.OnClickListener {
         });
     }
 }
-

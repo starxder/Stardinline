@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -244,16 +245,19 @@ public class OkManager {
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
+                Log.i(TAG, "onResponse:failure"+e);
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
+                Log.i(TAG, "onResponse: "+response.toString());
                 if (response != null && response.isSuccessful()) {
                     byte[] data = response.body().bytes();
                     Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
                     onSuccessImgMethod(bitmap, callback);
 
                     System.out.println(data.length);
+                    Log.i(TAG, "onResponse: "+data.length);
                 }
             }
         });
