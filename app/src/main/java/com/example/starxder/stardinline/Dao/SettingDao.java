@@ -6,7 +6,7 @@ package com.example.starxder.stardinline.Dao;
 
 import android.content.Context;
 
-import com.example.starxder.stardinline.Beans.User;
+import com.example.starxder.stardinline.Beans.Setting;
 import com.example.starxder.stardinline.Database.DatabaseHelper;
 import com.j256.ormlite.dao.Dao;
 
@@ -22,22 +22,22 @@ import java.util.List;
  * 调用dao的update()方法修改表中的数据
  * 调用dao的queryForAll()方法查询表中的所有数据
  */
-public class UserDao {
+public class SettingDao {
     private Context context;
     // ORMLite提供的DAO类对象，第一个泛型是要操作的数据表映射成的实体类；第二个泛型是这个实体类中ID的数据类型
-    private Dao<User, Integer> dao;
+    private Dao<Setting, Integer> dao;
 
-    public UserDao(Context context) {
+    public SettingDao(Context context) {
         this.context = context;
         try {
-            this.dao = DatabaseHelper.getInstance(context).getDao(User.class);
+            this.dao = DatabaseHelper.getInstance(context).getDao(Setting.class);
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
     // 向user表中添加一条数据
-    public void insert(User data) {
+    public void insert(Setting data) {
         try {
             dao.create(data);
         } catch (SQLException e) {
@@ -46,7 +46,7 @@ public class UserDao {
     }
 
     // 删除user表中的一条数据
-    public void delete(User data) {
+    public void delete(Setting data) {
         try {
             dao.delete(data);
         } catch (SQLException e) {
@@ -55,7 +55,7 @@ public class UserDao {
     }
 
     // 修改user表中的一条数据
-    public void update(User data) {
+    public void update(Setting data) {
         try {
             dao.update(data);
         } catch (SQLException e) {
@@ -64,8 +64,8 @@ public class UserDao {
     }
 
     // 查询user表中的所有数据
-    public List<User> selectAll() {
-        List<User> users = null;
+    public List<Setting> selectAll() {
+        List<Setting> users = null;
         try {
             users = dao.queryForAll();
         } catch (SQLException e) {
@@ -75,20 +75,19 @@ public class UserDao {
     }
 
     // 根据ID取出用户信息
-    public User queryById(int id) {
-        User user = null;
+    public Setting queryById(int id) {
+        Setting setting = null;
         try {
-            user = dao.queryForId(id);
+            setting = dao.queryForId(id);
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return user;
+         return setting;
     }
 
-
     // 根据loginName取出用户信息
-    public User queryByLoginName(String loginName) {
-        List<User> list = null;
+    public Setting queryByLoginName(String loginName) {
+        List<Setting> list = null;
         try {
             list = dao.queryBuilder().where().like("loginName", loginName).query();
 
@@ -99,26 +98,18 @@ public class UserDao {
     }
 
     // 取出全部信息
-    public List<User> queryForAll() throws SQLException {
-        List<User> list = dao.queryForAll();
+    public List<Setting> queryForAll() throws SQLException {
+        List<Setting> list = dao.queryForAll();
         return list;
     }
 
-
     // 取出ID最靠前的
-    public User getFirstUser() throws SQLException {
+    public Setting getFirstUser() throws SQLException {
         try{
-            List<User> list = dao.queryForAll();
+            List<Setting> list = dao.queryForAll();
             return list.get(0);
         }catch (Exception e){
             return  null;
-        }
-    }
-    // 删除全部信息
-    public void deleteAll() throws SQLException {
-        List<User> list =  queryForAll();
-        for(User user :list){
-            delete(user);
         }
     }
 }
